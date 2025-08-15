@@ -1,7 +1,7 @@
 import * as anchor from '@coral-xyz/anchor'
 import { PublicKey, Keypair } from '@solana/web3.js'
 import { BankrunProvider } from 'anchor-bankrun'
-import { startAnchor, ProgramTestContext, BanksClient } from 'solana-bankrun'
+import { startAnchor, ProgramTestContext, BanksClient, Clock } from 'solana-bankrun'
 import { SYSTEM_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/native/system'
 import { Program, BN } from '@coral-xyz/anchor'
 import { Vesting } from '../target/types/vesting'
@@ -9,6 +9,7 @@ import IDL from '../target/idl/vesting.json'
 import { createMint, mintTo } from 'spl-token-bankrun'
 // import { NodeWallet } from '@coral-xyz/anchor'
 import { TOKEN_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/utils/token'
+import { resolve } from 'path'
 
 // Remove the async from describe - Jest doesn't support async describe functions
 describe('Vesting Program Tests', () => {
@@ -132,5 +133,22 @@ describe('Vesting Program Tests', () => {
     console.log('Employee Account without toBase58', employeeAccount)
   })
 
-  it('')
+  it('should claim the employee vested tokens', async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const currentClock = await banksClient.getClock()
+
+    context.setClock(
+      new Clock(
+        currentClock.slot,
+        currentClock.epochStartTimestamp,
+        currentClock.epoch,
+        currentClock.leaderScheduleEpoch,
+        BigInt(1000),
+      ),
+    )
+
+    const tx3 = await program2.methods.claimTokens(companyName).accounts({ tokenProgram: TOKEN_PROGRAM_ID })
+
+    console.log('Claim Token Tx:', tx3)
+  })
 })
