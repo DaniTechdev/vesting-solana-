@@ -118,6 +118,19 @@ describe('Vesting Program Tests', () => {
   })
 
   it('should create an employee vesting account', async () => {
-    const tx = await program.methods.createEmployeeAccount(new BN(0), new BN(100), new BN(100), new BN(0))
+    const tx2 = await program.methods
+      .createEmployeeAccount(new BN(0), new BN(100), new BN(100), new BN(0))
+      .accounts({
+        beneficiary: beneficiary.publicKey,
+        vestingAccount: vestingAccountKey,
+      })
+      .rpc({ commitment: 'confirmed', skipPreflight: true })
+
+    console.log('Create Employee Account', tx2)
+
+    console.log('Employee Account', employeeAccount.toBase58())
+    console.log('Employee Account without toBase58', employeeAccount)
   })
+
+  it('')
 })
