@@ -3,10 +3,10 @@ import { PublicKey, Keypair } from '@solana/web3.js'
 import { BankrunProvider } from 'anchor-bankrun'
 import { startAnchor, ProgramTestContext, BanksClient } from 'solana-bankrun'
 import { SYSTEM_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/native/system'
-import { Program } from '@coral-xyz/anchor'
+import { Program, BN } from '@coral-xyz/anchor'
 import { Vesting } from '../target/types/vesting'
 import IDL from '../target/idl/vesting.json'
-import { createMint } from 'spl-token-bankrun'
+import { createMint, mintTo } from 'spl-token-bankrun'
 // import { NodeWallet } from '@coral-xyz/anchor'
 import { TOKEN_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/utils/token'
 
@@ -94,7 +94,9 @@ describe('Vesting Program Tests', () => {
       // Fetch the vesting account to verify it was created
       const vestingAccount = await program.account.vestingAccount.fetch(vestingAccountKey, 'confirmed')
 
-      console.log('Vesting Account:', JSON.stringify(vestingAccount, null, 2))
+      console.log('Vesting Account stringify:', JSON.stringify(vestingAccount, null, 2))
+      console.log('Vesting Account:', vestingAccount, null, 2)
+      console.log('create vesting account tx', tx)
 
       // Add assertions to verify the account was created correctly
       expect(vestingAccount).toBeDefined()
@@ -104,4 +106,18 @@ describe('Vesting Program Tests', () => {
       throw error
     }
   }, 30000) // 30 second timeout for this test
+
+  it('should fund the treasury token aaccount', async () => {
+    const amount = 10_000 * 10 ** 9
+
+    const mintTx = await mintTo(banksClient, employer, mint, treauryTokenAaccount, employer, amount)
+
+    console.log('treasury token account', treauryTokenAaccount)
+
+    console.log('Mint Treasury Token Aaccount TX:', mintTx)
+  })
+
+  it('should create an employee vesting account', async () => {
+    const tx = await program.methods.createEmployeeAccount(new BN(0), new BN(100), new BN(100), new BN(0))
+  })
 })
