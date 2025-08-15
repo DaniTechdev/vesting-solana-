@@ -1,21 +1,18 @@
 import * as anchor from '@coral-xyz/anchor'
 import { PublicKey, Keypair } from '@solana/web3.js'
-// import { BankrunProvider } from 'anchor-bankrun'
-import { describe, before, it } from 'node:test' // Node.js native test runner
-// import assert from 'node:assert'
+import { BankrunProvider } from 'anchor-bankrun'
 import { startAnchor, ProgramTestContext, BanksClient } from 'solana-bankrun'
 import { SYSTEM_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/native/system'
-import { BankrunProvider } from 'anchor-bankrun'
 import { Program } from '@coral-xyz/anchor'
 import { Vesting } from '../target/types/vesting'
 import IDL from '../target/idl/vesting.json'
 import { createMint } from 'spl-token-bankrun'
-// import {NodeWallet} from '@coral-xyz/anchor/dist/cjs/provider'
-import { NodeWallet } from '@coral-xyz/anchor'
+// import { NodeWallet } from '@coral-xyz/anchor'
 import { TOKEN_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/utils/token'
-describe('Vesting Program Tests', async () => {
+
+// Remove the async from describe - Jest doesn't support async describe functions
+describe('Vesting Program Tests', () => {
   const companyName = 'companyName'
-  //   let provider: BankrunProvider
   let beneficiary: Keypair
   let context: ProgramTestContext
   let provider: BankrunProvider
@@ -29,16 +26,10 @@ describe('Vesting Program Tests', async () => {
   let treauryTokenAaccount: PublicKey
   let employeeAccount: PublicKey
 
-  before(async () => {
+  beforeAll(async () => {
     beneficiary = new anchor.web3.Keypair()
 
-    //Note: We will run the bank server and the banks client in the same process
-    //This is done to avoid the need for a separate bankrun server process
-    //This is useful for testing purposes and allows us to run tests in a single process
-    //You can also run the bankrun server in a separate process and connect to it using
-    //the BankrunProvider constructor with the server URL
-
-    //we will start the anchor program with the vesting program idl and fund the beneficiary account with 1 SOL
+    // Start the anchor program with the vesting program idl and fund the beneficiary account with 1 SOL
     context = await startAnchor(
       '',
       [{ name: 'vesting', programId: new PublicKey(IDL.address) }],
@@ -56,24 +47,26 @@ describe('Vesting Program Tests', async () => {
     )
 
     provider = new BankrunProvider(context)
-
     anchor.setProvider(provider)
     program = new Program<Vesting>(IDL as Vesting, provider)
-
     banksClient = context.banksClient
-
     employer = provider.wallet.payer
 
-    // @ts-expect-error - Type error in spl-token-bankrun
-    mint = await createMint(beneficiary, employer.publicKey, null, 2)
+    // Create mint with proper error handling
+    try {
+      mint = await createMint(banksClient, employer, employer.publicKey, null, 2)
+    } catch (error) {
+      console.error('Error creating mint:', error)
+      throw error
+    }
 
-    //setting up provider for beneficiary for the employer to use
+    // Setting up provider for beneficiary
     beneficiaryProvider = new BankrunProvider(context)
-    beneficiaryProvider.wallet = new NodeWallet(beneficiary)
-
+    // beneficiaryProvider.wallet = new NodeWallet(beneficiary)
+    beneficiaryProvider.wallet = new anchor.Wallet(beneficiary)
     program2 = new Program<Vesting>(IDL as Vesting, beneficiaryProvider)
 
-    //deriving the pda for the vesting program(we have 3 pda)
+    // Deriving the PDAs for the vesting program
     ;[vestingAccountKey] = PublicKey.findProgramAddressSync([Buffer.from(companyName)], program.programId)
     ;[treauryTokenAaccount] = PublicKey.findProgramAddressSync(
       [Buffer.from('vesting_treasury'), Buffer.from(companyName)],
@@ -85,20 +78,30 @@ describe('Vesting Program Tests', async () => {
     )
   })
 
-  //write your tests here
   it('should create a vesting account', async () => {
-    const tx = await program.methods
-      .createVestingAccount(companyName)
-      .accounts({
-        signer: employer.publicKey,
-        mint,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc({ commitment: 'confirmed' })
+    try {
+      const tx = await program.methods
+        .createVestingAccount(companyName)
+        .accounts({
+          signer: employer.publicKey,
+          mint,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc({ commitment: 'confirmed' })
 
-    //lets fetch our Vesting account to see if it was created
-    const vestingAccount = await program.account.vestingAccount.fetch(vestingAccountKey, 'confirmed')
-    console.log('Vesting Account:', vestingAccount)
-    console.log('Create Vesting Account:', tx)
-  })
+      console.log('Create Vesting Account TX:', tx)
+
+      // Fetch the vesting account to verify it was created
+      const vestingAccount = await program.account.vestingAccount.fetch(vestingAccountKey, 'confirmed')
+
+      console.log('Vesting Account:', JSON.stringify(vestingAccount, null, 2))
+
+      // Add assertions to verify the account was created correctly
+      expect(vestingAccount).toBeDefined()
+      expect(vestingAccount.companyName).toBe(companyName)
+    } catch (error) {
+      console.error('Test failed with error:', error)
+      throw error
+    }
+  }, 30000) // 30 second timeout for this test
 })
