@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Keypair, PublicKey } from '@solana/web3.js'
 import { useMemo } from 'react'
 import { ExplorerLink } from '../cluster/cluster-ui'
@@ -7,19 +8,57 @@ import { useVestingProgram, useVestingProgramAccount } from './vesting-data-acce
 import { ellipsify } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
+import { useWallet } from '@solana/wallet-adapter-react'
 
-export function CounterCreate() {
-  const { initialize } = useVestingProgram()
+export function VestingCreate() {
+  const { createVestingAccount } = useVestingProgram()
 
+  const [company, setCompany] = useState('')
+  const [mint, setMint] = useState('')
+  const { publicKey } = useWallet()
+
+  const isFormValid = company.length > 0 && mint.length > 0
+
+  const handbleSubmit = () => {
+    if (publicKey && isFormValid) {
+      createVestingAccount.mutateAsync({ companyName: company, mint: mint })
+    }
+  }
+
+  if (!publicKey) {
+    return <p>Connect your waallet</p>
+  }
   return (
-    <Button onClick={() => initialize.mutateAsync(Keypair.generate())} disabled={initialize.isPending}>
-      Create {initialize.isPending && '...'}
-    </Button>
+    <div>
+      <input
+        type="text"
+        placeholder="Company Name"
+        value={company}
+        onChange={(e) => setCompany(e.target.value)}
+        className="input input-bordered w-full max-w-xs"
+      />
+      <input
+        type="text"
+        placeholder="Mint Address"
+        value={mint}
+        onChange={(e) => setMint(e.target.value)}
+        className="input input-bordered w-full max-w-xs mt-2"
+      />
+
+      <button
+        className="btn btn-xs lg:btn-md btn-primary"
+        onClick={handbleSubmit}
+        disabled={createVestingAccount.isPending || !isFormValid}
+      >
+        Create New Vesting Account {createVestingAccount.isPending && '...'}
+      </button>
+      {/* <Button onClick={handbleSubmit}>Create New Vesting Account {initialize.isPending && '...'}</Button> */}
+    </div>
   )
 }
 
 export function CounterList() {
-  const { accounts, getProgramAccount } = useCounterProgram()
+  const { accounts, getProgramAccount } = useVestingProgram()
 
   if (getProgramAccount.isLoading) {
     return <span className="loading loading-spinner loading-lg"></span>
@@ -38,7 +77,7 @@ export function CounterList() {
       ) : accounts.data?.length ? (
         <div className="grid md:grid-cols-2 gap-4">
           {accounts.data?.map((account) => (
-            <CounterCard key={account.publicKey.toString()} account={account.publicKey} />
+            <VestingCard key={account.publicKey.toString()} account={account.publicKey} />
           ))}
         </div>
       ) : (
@@ -51,7 +90,7 @@ export function CounterList() {
   )
 }
 
-function CounterCard({ account }: { account: PublicKey }) {
+function VestingCard({ account }: { account: PublicKey }) {
   const { accountQuery, incrementMutation, setMutation, decrementMutation, closeMutation } = useCounterProgramAccount({
     account,
   })
