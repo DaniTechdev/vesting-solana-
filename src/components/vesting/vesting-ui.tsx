@@ -29,13 +29,14 @@ export function VestingCreate() {
     return <p>Connect your waallet</p>
   }
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <input
         type="text"
         placeholder="Company Name"
         value={company}
         onChange={(e) => setCompany(e.target.value)}
         className="input input-bordered w-full max-w-xs"
+        style={{ backgroundColor: 'green' }}
       />
       <input
         type="text"
