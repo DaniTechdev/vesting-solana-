@@ -34,7 +34,7 @@ export function useVestingProgram() {
   const program = useMemo(() => getVestingProgram(provider, programId), [provider, programId])
 
   const accounts = useQuery({
-    queryKey: ['counter', 'all', { cluster }],
+    queryKey: ['vesting', 'all', { cluster }],
     queryFn: () => program.account.vestingAccount.all(),
   })
 
@@ -89,7 +89,7 @@ export function useVestingProgramAccount({ account }: { account: PublicKey }) {
   const { program, accounts } = useVestingProgram()
 
   const accountQuery = useQuery({
-    queryKey: ['counter', 'fetch', { cluster, account }],
+    queryKey: ['vesting', 'fetch', { cluster, account }],
     queryFn: () => program.account.vestingAccount.fetch(account),
   })
 

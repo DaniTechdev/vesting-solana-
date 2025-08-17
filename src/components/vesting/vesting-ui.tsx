@@ -57,7 +57,7 @@ export function VestingCreate() {
   )
 }
 
-export function CounterList() {
+export function VestingList() {
   const { accounts, getProgramAccount } = useVestingProgram()
 
   if (getProgramAccount.isLoading) {
@@ -91,62 +91,80 @@ export function CounterList() {
 }
 
 function VestingCard({ account }: { account: PublicKey }) {
-  const { accountQuery, incrementMutation, setMutation, decrementMutation, closeMutation } = useCounterProgramAccount({
+  const { accountQuery, createEmployeeVesting } = useVestingProgramAccount({
     account,
   })
 
-  const count = useMemo(() => accountQuery.data?.count ?? 0, [accountQuery.data?.count])
+  const [startTime, setStartTime] = useState(0)
+  const [endTime, setEndTime] = useState(0)
+  const [cliffTime, setCliffTime] = useState(0)
+  const [totalAmount, setTotalAmount] = useState(0)
+  const [beneficiary, setBeneficiary] = useState('')
+
+  const companyName = useMemo(() => accountQuery.data?.companyName ?? '', [accountQuery.data?.companyName])
+
+  // const count = useMemo(() => accountQuery.data?.count ?? 0, [accountQuery.data?.count])
 
   return accountQuery.isLoading ? (
     <span className="loading loading-spinner loading-lg"></span>
   ) : (
     <Card>
       <CardHeader>
-        <CardTitle>Counter: {count}</CardTitle>
+        <CardTitle>Company: {companyName}</CardTitle>
         <CardDescription>
           Account: <ExplorerLink path={`account/${account}`} label={ellipsify(account.toString())} />
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex gap-4">
+          <input
+            type="text"
+            placeholder="Start Time"
+            value={startTime || ''}
+            onChange={(e) => setStartTime(parseInt(e.target.value))}
+            className="input input-bordered w-full max-w-xs"
+          />
+
+          <input
+            type="text"
+            placeholder="End Time"
+            value={endTime || ''}
+            onChange={(e) => setEndTime(parseInt(e.target.value))}
+            className="input input-bordered w-full max-w-xs"
+          />
+
+          <input
+            type="text"
+            placeholder="Total Allocation"
+            value={totalAmount || ''}
+            onChange={(e) => setTotalAmount(parseInt(e.target.value))}
+            className="input input-bordered w-full max-w-xs"
+          />
+
+          <input
+            type="text"
+            placeholder="Cliff Time"
+            value={cliffTime || ''}
+            onChange={(e) => setCliffTime(parseInt(e.target.value))}
+            className="input input-bordered w-full max-w-xs"
+          />
+
+          <input
+            type="text"
+            placeholder="beneficiary wallet address"
+            value={beneficiary}
+            onChange={(e) => setBeneficiary(e.target.value)}
+            className="input input-bordered w-full max-w-xs"
+          />
+
           <Button
             variant="outline"
-            onClick={() => incrementMutation.mutateAsync()}
-            disabled={incrementMutation.isPending}
+            onClick={() =>
+              createEmployeeVesting.mutateAsync({ startTime, endTime, totalAmount, cliffTime, beneficiary })
+            }
+            disabled={createEmployeeVesting.isPending}
           >
-            Increment
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              const value = window.prompt('Set value to:', count.toString() ?? '0')
-              if (!value || parseInt(value) === count || isNaN(parseInt(value))) {
-                return
-              }
-              return setMutation.mutateAsync(parseInt(value))
-            }}
-            disabled={setMutation.isPending}
-          >
-            Set
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => decrementMutation.mutateAsync()}
-            disabled={decrementMutation.isPending}
-          >
-            Decrement
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => {
-              if (!window.confirm('Are you sure you want to close this account?')) {
-                return
-              }
-              return closeMutation.mutateAsync()
-            }}
-            disabled={closeMutation.isPending}
-          >
-            Close
+            Create Employee Vesting Account
           </Button>
         </div>
       </CardContent>
